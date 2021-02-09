@@ -5,6 +5,9 @@ library(tidytext)
 library(reshape2)
 library(SuperLearner)
 library(tidymodels)
+library(corpus)
+
+# Load raw data ----
 
 name_files=c("test","train")
 
@@ -17,21 +20,43 @@ list_df <- name_files %>%
 names(list_df) <- name_files
 
 
+# Pre-processing ----
+# Note: single words, bigrams and single words stemmed
 
-# 
-
-stpwds = stopwords(source = "stopwords-iso") 
+stpwds = stopwords::stopwords(source = "stopwords-iso") 
  
 replace_reg <- "http[s]?://[A-Za-z\\d/\\.]+|&amp;|&lt;|&gt;"
 unnest_reg  <- "([^A-Za-z_\\d#@']|'(?![A-Za-z_\\d#@]))"
 
 
-# why only words and not other n-grams?
+# Bi-gram ----
+
+clean_list_df <- list_df %>% 
+  map(~ .x %>% mutate(Tweet = str_replace_all(Tweet, replace_reg, ""))) %>% 
+  map(~ .x %>% mutate(Tweet = tolower(Tweet))) %>% 
+  map(~ .x %>% mutate(Tweet = removeWords(.$Tweet,stpwds))) %>% 
+  map(~ .x %>% unnest_tokens(word, Tweet, "ngrams", n= 2))
+
+# Words ----
 
 clean_list_df <- list_df %>% 
   map(~ .x %>% mutate(Tweet = str_replace_all(Tweet, replace_reg, ""))) %>% 
   map(~ .x %>% unnest_tokens(word, Tweet, "regex",pattern = unnest_reg, to_lower = T)) %>% 
-  map(~ .x %>% filter(!word %in% stpwds & str_detect(word, "[a-z]"))) 
+  map(~ .x %>% filter(!word %in% stpwds & str_detect(word, "[a-z]")))
+
+
+# Words (stemmed) ----
+
+
+list_df %>% 
+  map(~ .x %>% mutate(Tweet = str_replace_all(Tweet, replace_reg, ""))) %>% 
+  map(~ .x %>% unnest_tokens(word, Tweet, "regex",pattern = unnest_reg, to_lower = T)) %>% 
+  map(~ .x %>% filter(!word %in% stpwds & str_detect(word, "[a-z]")))
+
+
+# still to work on this!!
+
+
 
 
 # Continue to work on plot:
@@ -88,14 +113,14 @@ tidy_tweets_topwords <- top_500 %>%
     .x %>% reshape2::dcast(id~word, function(x) 1, fill = 0) 
   }
 )
-
-
+  
+  
 
 
     
   # Save intermediate files ----
     
-    list(tidy_tweets_topwords_train,tidy_tweets_topwords_test) %>% 
+    tidy_tweets_topwords %>% 
       walk2(name_files, ~ saveRDS(.x, file = paste0("../Machine_learning_for_economics_material/intermediate_data/homework_1/",.y,"_top500_words.rds")))
  
   
@@ -108,8 +133,7 @@ tidy_tweets_topwords <- top_500 %>%
                X= tidy_tweets_topwords_train %>% select(-id,-Author),
                family = binomial(),
                SL.library = c("SL.mean",
-                              "SL.kernelKnn",
-                              "SL.randomForest"))
+                              "SL.kernelKnn"))
 
   predicted <- predict(a, tidy_tweets_topwords_test %>% select(-id)) 
 
