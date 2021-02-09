@@ -142,6 +142,25 @@ tidy_tweets_topwords <- top_500 %>%
     geom_density() +
     theme_minimal()
     
-    
+  
+# Grid search hyperparameters: ---- 
+  
+learner = create.Learner("SL.kernelKnn", tune = list(k = c(2:12)))
+
+cv_sl = SuperLearner(Y= ifelse(tidy_tweets_topwords_train$Author == "bernie",1,0), 
+                     X= tidy_tweets_topwords_train %>% select(-id,-Author),
+                     family = binomial(),
+                     SL.library = learner$names)
+  
+cv_sl$cvRisk %>% 
+  stack() %>% 
+  mutate(ind = str_extract(ind, "\\d")) %>%
+  slice(1:9) %>% 
+  setNames(c("Risk","K")) %>% 
+  ggplot(aes(K, Risk, group = 1)) +
+  geom_line(col = "blue", size = 1.5) +
+  geom_point(col = "blue", alpha = 0.5, size = 3) +
+  theme_minimal()
+  
     
     
