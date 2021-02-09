@@ -69,32 +69,28 @@ freq_words <- data.frame(word=list_of_words) %>%
       .[1:500,] %>% # top 500 words
       mutate(word=as.character(word))
     
-tidy_tweets_topwords_train <- tidy_tweets_train %>% 
-      mutate(topwords = ifelse(word %in% freq_words$word, 1,0)) %>%
-      mutate(word = ifelse(topwords==1, word, "no_top_word")) %>%
-      unique() %>%
-      group_by(id) %>%
-      mutate(notopwords = 1-max(topwords)) %>%
-      ungroup() %>%
-      filter(!(word=="no_top_word" & notopwords==0)) %>%
-      select(-topwords, -notopwords) %>%
-      unique() %>%
-      reshape2::dcast(id+Author~word, function(x) 1, fill = 0)
-    
+top_500 <- list(tidy_tweets_train, tidy_tweets_test) %>%
+  map(~ .x %>% mutate(topwords = ifelse(word %in% freq_words$word, 1,0))) %>%
+  map(~ .x %>% mutate(word = ifelse(topwords==1, word, "no_top_word"))) %>%
+  map(~ .x %>% unique()) %>%
+  map(~ .x %>% group_by(id)) %>%
+  map(~ .x %>% mutate(notopwords = 1-max(topwords))) %>%
+  map(~ .x %>% ungroup()) %>%
+  map(~ .x %>% filter(!(word=="no_top_word" & notopwords==0))) %>%
+  map(~ .x %>% select(-topwords, -notopwords)) %>%
+  map(~ .x %>% unique()) 
 
-    
-  tidy_tweets_topwords_test <- tidy_tweets_test %>% 
-      mutate(topwords = ifelse(word %in% freq_words$word, 1,0)) %>%
-      mutate(word = ifelse(topwords==1, word, "no_top_word")) %>%
-      unique() %>%
-      group_by(id) %>%
-      mutate(notopwords = 1-max(topwords)) %>%
-      ungroup() %>%
-      filter(!(word=="no_top_word" & notopwords==0)) %>%
-      select(-topwords, -notopwords) %>%
-      unique() %>%
-      reshape2::dcast(id~word, function(x) 1, fill = 0) 
-    
+
+tidy_tweets_topwords <- top_500 %>% 
+  map(~ if(any(names(.x) == "Author")){
+    .x %>% reshape2::dcast(id+Author~word, function(x) 1, fill = 0)
+  } else {
+    .x %>% reshape2::dcast(id~word, function(x) 1, fill = 0) 
+  }
+)
+
+
+
 
     
   # Save intermediate files ----
