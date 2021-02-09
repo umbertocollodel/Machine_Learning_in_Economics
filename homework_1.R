@@ -3,6 +3,8 @@ library(tidyverse)
 library(stopwords)
 library(tidytext)
 library(reshape2)
+library(SuperLearner)
+library(tidymodels)
 
 name_files=c("test","train")
 
@@ -81,7 +83,7 @@ tidy_tweets_topwords_train <- tidy_tweets_train %>%
     
 
     
-  idy_tweets_topwords_test <- tidy_tweets_test %>% 
+  tidy_tweets_topwords_test <- tidy_tweets_test %>% 
       mutate(topwords = ifelse(word %in% freq_words$word, 1,0)) %>%
       mutate(word = ifelse(topwords==1, word, "no_top_word")) %>%
       unique() %>%
@@ -99,7 +101,26 @@ tidy_tweets_topwords_train <- tidy_tweets_train %>%
     
     list(tidy_tweets_topwords_train,tidy_tweets_topwords_test) %>% 
       walk2(name_files, ~ saveRDS(.x, file = paste0("../Machine_learning_for_economics_material/intermediate_data/homework_1/",.y,"_top500_words.rds")))
-    
+ 
+  
+  
+  # Train the model ----
+  
+  set.seed(243)
+  
+  a <- SuperLearner(Y= ifelse(tidy_tweets_topwords_train$Author == "bernie",1,0), 
+               X= tidy_tweets_topwords_train %>% select(-id,-Author),
+               family = binomial(),
+               SL.library = c("SL.mean",
+                              "SL.kernelKnn",
+                              "SL.randomForest"))
+
+  predicted <- predict(a, tidy_tweets_topwords_test %>% select(-id)) 
+
+  data.frame(fitted_knn = predicted$library.predict$SL.kernelKnn_All) %>% 
+  ggplot(aes(x=fitted)) +
+    geom_density() +
+    theme_minimal()
     
     
     
