@@ -2,6 +2,7 @@
 library(tidyverse)
 library(stopwords)
 library(tidytext)
+library(reshape2)
 
 name_files=c("test","train")
 
@@ -55,10 +56,9 @@ tidy_tweets_train <- clean_list_df[["train"]]
 tidy_tweets_test <- clean_list_df[["test"]]
     
     
-    # list of words in train that are also in test
-    list_of_words = tidy_tweets_train$word[tidy_tweets_train$word %in% tidy_tweets_test$word]
+list_of_words = tidy_tweets_train$word[tidy_tweets_train$word %in% tidy_tweets_test$word]
     
-    freq_words <- data.frame(word=list_of_words) %>%
+freq_words <- data.frame(word=list_of_words) %>%
       group_by(word) %>%
       mutate(n = n()) %>%
       unique() %>%
@@ -67,7 +67,7 @@ tidy_tweets_test <- clean_list_df[["test"]]
       .[1:500,] %>% # top 500 words
       mutate(word=as.character(word))
     
-    tidy_tweets_topwords_train <- tidy_tweets_train %>% 
+tidy_tweets_topwords_train <- tidy_tweets_train %>% 
       mutate(topwords = ifelse(word %in% freq_words$word, 1,0)) %>%
       mutate(word = ifelse(topwords==1, word, "no_top_word")) %>%
       unique() %>%
@@ -77,13 +77,11 @@ tidy_tweets_test <- clean_list_df[["test"]]
       filter(!(word=="no_top_word" & notopwords==0)) %>%
       select(-topwords, -notopwords) %>%
       unique() %>%
-      dcast(id+Author~word, function(x) 1, fill = 0) 
+      reshape2::dcast(id+Author~word, function(x) 1, fill = 0)
     
-    # saveRDS(tidy_tweets_topwords_train, "train_top500_words.rds")
+
     
-    head(tidy_tweets_topwords_train)
-    
-    tidy_tweets_topwords_test <- tidy_tweets_test %>% 
+  idy_tweets_topwords_test <- tidy_tweets_test %>% 
       mutate(topwords = ifelse(word %in% freq_words$word, 1,0)) %>%
       mutate(word = ifelse(topwords==1, word, "no_top_word")) %>%
       unique() %>%
@@ -93,8 +91,16 @@ tidy_tweets_test <- clean_list_df[["test"]]
       filter(!(word=="no_top_word" & notopwords==0)) %>%
       select(-topwords, -notopwords) %>%
       unique() %>%
-      dcast(id~word, function(x) 1, fill = 0) 
+      reshape2::dcast(id~word, function(x) 1, fill = 0) 
     
-    # saveRDS(tidy_tweets_topwords_test, "test_top500_words.rds")
+
     
-    head(tidy_tweets_topwords_test)
+  # Save intermediate files ----
+    
+    list(tidy_tweets_topwords_train,tidy_tweets_topwords_test) %>% 
+      walk2(name_files, ~ saveRDS(.x, file = paste0("../Machine_learning_for_economics_material/intermediate_data/homework_1/",.y,"_top500_words.rds")))
+    
+    
+    
+    
+    
