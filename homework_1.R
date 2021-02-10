@@ -166,14 +166,9 @@ test_y <- test %>%
   
 # Train the model ----
 
-length(availableWorkers())
+set.seed(123)
 
-options(mc.cores = 2)
-
-
-set.seed(123, "L'Ecuyer-CMRG")
-
-model <- CV.SuperLearner(Y= train_y$Author, 
+model <- SuperLearner(Y= train_y$Author, 
                X= train_x,
                family = binomial(),
                SL.library = c("SL.mean",
@@ -181,7 +176,6 @@ model <- CV.SuperLearner(Y= train_y$Author,
                               "SL.glmnet",
                               "SL.randomForest",
                               "SL.xgboost"),
-               parellel = "multicore",
                cvControl = list(0))
 
 
