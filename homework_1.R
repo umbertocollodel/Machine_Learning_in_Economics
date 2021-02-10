@@ -199,6 +199,18 @@ names(predicted) %>%
 
 
 
+# Extend on "real" test set ----
+
+
+predict(model, tidy_tweets_topwords_test %>% select(-id))$pred %>% 
+  round(.,2) %>% 
+  data.frame(fitted = .) %>% 
+  ggplot(aes(fitted)) +
+  geom_density() +
+  theme_minimal()
+
+
+
 
 
   
