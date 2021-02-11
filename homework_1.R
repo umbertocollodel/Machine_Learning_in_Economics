@@ -108,12 +108,9 @@ freq_words <- list_of_words %>%
   map(~ .x %>% dplyr::slice(1:500)) %>% 
   map(~ .x %>% mutate(word = as.character(word)))
   
-
-test %>% test 
-  
-
-top_500 <- list(tidy_tweets_train, tidy_tweets_test) %>%
-  map(~ .x %>% mutate(topwords = ifelse(word %in% freq_words$word, 1,0))) %>%
+top_500 <- list(train,test) %>%
+  flatten() %>% 
+  map2(rep(freq_words,2), ~ .x %>% mutate(topwords = ifelse(word %in% .y$word, 1, 0))) %>% 
   map(~ .x %>% mutate(word = ifelse(topwords==1, word, "no_top_word"))) %>%
   map(~ .x %>% unique()) %>%
   map(~ .x %>% group_by(id)) %>%
@@ -123,6 +120,9 @@ top_500 <- list(tidy_tweets_train, tidy_tweets_test) %>%
   map(~ .x %>% select(-topwords, -notopwords)) %>%
   map(~ .x %>% unique()) 
 
+  
+
+
 
 tidy_tweets_topwords <- top_500 %>% 
   map(~ if(any(names(.x) == "Author")){
@@ -130,21 +130,32 @@ tidy_tweets_topwords <- top_500 %>%
   } else {
     .x %>% reshape2::dcast(id~word, function(x) 1, fill = 0) 
   }
-)
+ )
   
-  
-
 
     
 # Save intermediate files ----
-    
-tidy_tweets_topwords %>% 
-      walk2(name_files, ~ saveRDS(.x, file = paste0("../Machine_learning_for_economics_material/intermediate_data/homework_1/",.y,"_top500_words.rds")))
+
+# Set parameters:
+
+intermediate_path="../Machine_learning_for_economics_material/intermediate_data/homework_1/"   
+name_intermediate=c(rep("train",3),rep("test",3))
+pre_processing=rep(c("word","stemmed","bigram"), 2)
+
+# Export:
  
- 
+  pwalk(list(tidy_tweets_topwords, 
+            name_intermediate, 
+            pre_processing), function(x,y,z){
+             saveRDS(x, file = paste0(intermediate_path,y,"_",z,".rds"))
+              }
+       )
+
+        
+
 # Create a training sample and validation sample of the insample tweets
 
- set.seed(123)
+set.seed(123)
 
  
 train <- tidy_tweets_topwords_train %>% 
