@@ -3,34 +3,41 @@
 # 3) Hyperparameter tuning
 # 4) Length of training data
 
-
-library(tidyverse)
-library(stopwords)
-library(tidytext)
-library(reshape2)
-library(SuperLearner)
-library(tidymodels)
-library(corpus)
-library(xgboost)
-library(future)
+# Install and load all required packages ----
 
 
+packages=c("tidyverse","stopwords","tidytext",
+           "reshape2","SuperLearner","corpus",
+           "xgboost","tm", "SnowballC", "crayon")
+
+
+
+packages %>% 
+  lapply(function(x){
+  do.call("require", list(x))
+  }
+)
 
 
 # Load raw data ----
 
+# Set parameters:
+
+local_path=c("../Machine_learning_for_economics_material/raw_data/homework_1/")
 name_files=c("test","train")
 
 
+# Read csv files:
+
 list_df <- name_files %>% 
-  map_chr(~ paste0("../Machine_learning_for_economics_material/raw_data/homework_1/",.x,".csv")) %>% 
+  map_chr(~ paste0(local_path,.x,".csv")) %>% 
   map(~ read.csv(.x)) %>% 
   map(~ as_tibble(.x))
 
 names(list_df) <- name_files
 
 
-# Pre-processing ----
+# Pre-processing tweets ----
 # Note: single words, bigrams and single words stemmed
 
 stpwds = stopwords::stopwords(source = "stopwords-iso") 
@@ -39,71 +46,72 @@ replace_reg <- "http[s]?://[A-Za-z\\d/\\.]+|&amp;|&lt;|&gt;"
 unnest_reg  <- "([^A-Za-z_\\d#@']|'(?![A-Za-z_\\d#@]))"
 
 
-# Bi-gram ----
+# Bi-gram 
 
-clean_list_df <- list_df %>% 
+clean_list_bigrams <- list_df %>% 
   map(~ .x %>% mutate(Tweet = str_replace_all(Tweet, replace_reg, ""))) %>% 
   map(~ .x %>% mutate(Tweet = tolower(Tweet))) %>% 
   map(~ .x %>% mutate(Tweet = removeWords(.$Tweet,stpwds))) %>% 
   map(~ .x %>% unnest_tokens(word, Tweet, "ngrams", n= 2))
 
-# Words ----
+# Words 
 
-clean_list_df <- list_df %>% 
+clean_list_words <- list_df %>% 
   map(~ .x %>% mutate(Tweet = str_replace_all(Tweet, replace_reg, ""))) %>% 
   map(~ .x %>% unnest_tokens(word, Tweet, "regex",pattern = unnest_reg, to_lower = T)) %>% 
   map(~ .x %>% filter(!word %in% stpwds & str_detect(word, "[a-z]")))
 
 
-# Words (stemmed) ----
+# Words (stemmed - Porter algorithm)
 
-
-list_df %>% 
+clean_list_stemmed <- list_df %>% 
   map(~ .x %>% mutate(Tweet = str_replace_all(Tweet, replace_reg, ""))) %>% 
   map(~ .x %>% unnest_tokens(word, Tweet, "regex",pattern = unnest_reg, to_lower = T)) %>% 
-  map(~ .x %>% filter(!word %in% stpwds & str_detect(word, "[a-z]")))
-
-
-# still to work on this!!
-
-
-
-
-# Continue to work on plot:
-
-clean_list_df[["train"]] %>%
-  filter(word != "rt") %>% 
-  group_by(Author,word) %>% 
-  count() %>% 
-  filter(n <100) %>% 
-  spread(Author, n) %>% 
-  ggplot(aes(bernie,trump)) +
-    geom_point() +
-    geom_label(aes(label = ))
-    theme_minimal()
+  map(~ .x %>% filter(!word %in% stpwds & str_detect(word, "[a-z]"))) %>% 
+  map(~ .x %>% mutate(word = wordStem(word))) 
+  
+  
+# Compare stemming with single words tokenization
+  
+if(clean_list_stemmed[["train"]] %>%
+    group_by(word) %>% count() %>% .$n %>% length() <= clean_list_words[["train"]] %>% group_by(word) %>% count() %>% .$n %>% length()){
+  cat(green("Stemming reduces dimensionality!"))
+} else{
+  cat(red("Stemming does not reduce dimensionality"))
+}
+  
+  
 
     
-#############################
-##### GET TOP 500 WORDS #####
-#############################
+# Keep only 500 best words/stemmed words/n-grams -----
+
+# Regroup different pre-processed test and train sets together: 
+
+test <- rep(1,3) %>% 
+  map2(list(clean_list_words, clean_list_bigrams,clean_list_stemmed), ~ .y[[.x]])
+
+train <- rep(2,3) %>% 
+  map2(list(clean_list_words, clean_list_bigrams,clean_list_stemmed), ~ .y[[.x]])
+
+# Select only common words (train and test) and keep best 500:
     
-## in this part we want to create a dataframe with a list of tweet ids and dummy variables for the top 500 words
-    
-tidy_tweets_train <- clean_list_df[["train"]]
-tidy_tweets_test <- clean_list_df[["test"]]
-    
-    
-list_of_words = tidy_tweets_train$word[tidy_tweets_train$word %in% tidy_tweets_test$word]
-    
-freq_words <- data.frame(word=list_of_words) %>%
-      group_by(word) %>%
-      mutate(n = n()) %>%
-      unique() %>%
-      ungroup() %>%
-      arrange(-n) %>%
-      .[1:500,] %>% # top 500 words
-      mutate(word=as.character(word))
-    
+list_of_words= test %>% 
+  map2(train, ~ .y$word[.y$word %in% .x$word])
+
+freq_words <- list_of_words %>% 
+  map(~ data.frame(word=.x)) %>% 
+  map(~ .x %>% group_by(word)) %>% 
+  map(~ .x %>% mutate(n = n())) %>% 
+  map(~ .x %>% unique()) %>% 
+  map(~ .x %>% ungroup()) %>% 
+  map(~ .x %>% arrange(-n)) %>% 
+  map(~ .x %>% dplyr::slice(1:500)) %>% 
+  map(~ .x %>% mutate(word = as.character(word)))
+  
+
+test %>% test 
+  
+
 top_500 <- list(tidy_tweets_train, tidy_tweets_test) %>%
   map(~ .x %>% mutate(topwords = ifelse(word %in% freq_words$word, 1,0))) %>%
   map(~ .x %>% mutate(word = ifelse(topwords==1, word, "no_top_word"))) %>%
