@@ -8,7 +8,8 @@
 
 packages=c("tidyverse","stopwords","tidytext",
            "reshape2","SuperLearner","corpus",
-           "xgboost","tm", "SnowballC", "crayon")
+           "xgboost","tm", "SnowballC", "crayon",
+           "ROCR")
 
 
 
@@ -152,65 +153,90 @@ pre_processing=rep(c("word","stemmed","bigram"), 2)
        )
 
         
-
-# Create a training sample and validation sample of the insample tweets
-
-set.seed(123)
-
- 
-train <- tidy_tweets_topwords_train %>% 
-  sample_frac(.7) %>% 
-  as_tibble()
-
-test <- tidy_tweets_topwords_train %>% 
-  filter(!id %in% train$id) %>% 
-  as_tibble()
-
-train_x <- train %>% 
-  select(-id, -Author)
-
-train_y <- train %>% 
-  select(Author) %>% 
-  mutate(Author = case_when(Author == "bernie" ~ 1,
-                            T~ 0))
-
-test_x <- test %>% 
-  select(-id, -Author)
-
-test_y <- test %>%
-  select(Author) %>% 
-  mutate(Author = case_when(Author == "bernie" ~ 1,
-                            T~ 0))
- 
+# Create a "test" set from already labelled data ---- 
+# Note: seed goes inside the function otherwise randomness not common to iterations
   
-# Train the model ----
 
-set.seed(123)
+# Partition the train and test set from labelled data (70% train)
 
-model <- SuperLearner(Y= train_y$Author, 
-               X= train_x,
-               family = binomial(),
-               SL.library = c("SL.mean",
-                              "SL.kernelKnn",
-                              "SL.glmnet",
-                              "SL.randomForest",
-                              "SL.xgboost"),
-               cvControl = list(0))
+label_train <- tidy_tweets_topwords[1:3] %>% 
+  map(~ as_tibble(.x)) %>%
+  map( function(x){
+    set.seed(123)
+    x %>% sample_frac(.7)}
+    )
+  
+label_test <- tidy_tweets_topwords[1:3] %>% 
+  map2(label_train, ~ .x %>% filter(!id %in% .y$id)) %>% 
+  map(~ as_tibble(.x))
+
+# Partition between x's and y's
 
 
-predicted <- predict(model, test_x, onlySL = F)[["library.predict"]] %>% 
-  as_tibble()
+label_train_x <- label_train %>% 
+  map(~ .x %>% select(-id, -Author))
 
-names(predicted) %>% 
-  map(~ ROCR::prediction(predicted[,.x], test_y$Author)) %>%
-  map(~ ROCR::performance(.x, measure = "auc", x.measure = "cutoff")@y.values[[1]]) %>% 
-  map(~ data.frame(auc = .x)) %>% 
+label_train_y <- label_train %>% 
+  map(~ .x %>% select(Author)) %>% 
+  map(~ .x %>% mutate(Author = case_when(Author == "bernie" ~ 1,
+                      T~ 0)))
+
+
+label_test_x <- label_test %>% 
+  map(~ .x %>% select(-id, -Author))
+
+label_test_y <- label_test %>% 
+  map(~ .x %>% select(Author)) %>% 
+  map(~ .x %>% mutate(Author = case_when(Author == "bernie" ~ 1,
+                                         T~ 0)))
+  
+# Train the models ----
+# Note: running three models for three pre-processing methods (may take up to three minutes)
+
+set.seed(436)
+
+
+model <- label_train_x %>% 
+  map2(label_train_y, ~ SuperLearner(Y= .y$Author, 
+                      X= .x,
+                      family = binomial(),
+                      SL.library = c("SL.mean",
+                                     "SL.kernelKnn",
+                                     "SL.glmnet"),
+                      cvControl = list(0)))
+
+
+# Obtain fitted probabilities for labelled "test" set:
+
+fitted <- model %>% 
+    map2(label_test_x, ~ predict(.x, .y, onlySL = F)[["library.predict"]]) %>% 
+    map(~ as_tibble(.x))
+
+
+# Rank models by Area under the Curve and plot:
+
+name_models=c("Uncond. mean","KNN","LASSO")
+token=c(rep("Words", 3),rep("Bi-gram",3),rep("Stemmed Words",3))
+
+auc_df <- fitted %>% 
+  map2(label_test_y, ~ cbind(.x,.y)) %>% 
+  map(~ map(1:3, function(x){
+    ROCR::prediction(.x[,x],.x$Author)
+  })) %>% 
+  modify_depth(2,~ ROCR::performance(.x, measure = "auc", x.measure = "cutoff")@y.values[[1]]) %>% 
+  modify_depth(2,~ data.frame(auc = .x)) %>% 
+  map(~ bind_rows(.x)) %>% 
+  map(~ .x %>% mutate(models = name_models)) %>% 
   bind_rows() %>% 
-  mutate(model = names(predicted)) %>% 
-  mutate(model = str_extract(model, "(?<=\\.)(.+)(?=_)")) %>%
-  mutate(model = fct_reorder(model, auc, mean)) %>% 
-  ggplot(aes(auc, model)) +
+  mutate(pre_processing = token)
+  
+
+auc_df %>%
+  mutate(models = factor(models)) %>% 
+  mutate(models = fct_reorder(models,auc, mean)) %>% 
+  ggplot(aes(auc, models)) +
   geom_col(width = 0.2) +
+  facet_wrap(~ pre_processing) +
   theme_minimal() +
   xlab("Area under the Curve (AUC)") +
   ylab("Algorithm")
