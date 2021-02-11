@@ -3,6 +3,13 @@
 # 3) Hyperparameter tuning
 # 4) Length of training data
 
+############ INSTRUCTIONS TO RUN ###############
+
+# Change local_path to local directory where train and test.csv are lodged 
+# Change intermediate_path to local directory where you want all cleaned rds to be stored
+
+##################################################
+
 # Install and load all required packages ----
 
 
@@ -39,7 +46,7 @@ names(list_df) <- name_files
 
 
 # Pre-processing tweets ----
-# Note: single words, bigrams and single words stemmed
+# Three differens methods chosen: single words, bigrams and single words stemmed
 
 stpwds = stopwords::stopwords(source = "stopwords-iso") 
  
@@ -72,7 +79,7 @@ clean_list_stemmed <- list_df %>%
   map(~ .x %>% mutate(word = wordStem(word))) 
   
   
-# Compare stemming with single words tokenization
+# Compare stemming with single words tokenization (to see if actually common roots between words)
   
 if(clean_list_stemmed[["train"]] %>%
     group_by(word) %>% count() %>% .$n %>% length() <= clean_list_words[["train"]] %>% group_by(word) %>% count() %>% .$n %>% length()){
@@ -191,7 +198,8 @@ label_test_y <- label_test %>%
                                          T~ 0)))
   
 # Train the models ----
-# Note: running three models for three pre-processing methods (may take up to three minutes)
+# Running three models on same trainining data with, however, text processed in different ways
+# Unconditional mean common to all samples (same training data)
 
 set.seed(436)
 
@@ -206,6 +214,9 @@ model <- label_train_x %>%
                       cvControl = list(0)))
 
 
+# Evaluate model on basis of already labelled "test" set performance -----
+
+
 # Obtain fitted probabilities for labelled "test" set:
 
 fitted <- model %>% 
@@ -213,7 +224,7 @@ fitted <- model %>%
     map(~ as_tibble(.x))
 
 
-# Rank models by Area under the Curve and plot:
+# Rank models by Area under the Curve:
 
 name_models=c("Uncond. mean","KNN","LASSO")
 token=c(rep("Words", 3),rep("Bi-gram",3),rep("Stemmed Words",3))
@@ -229,6 +240,9 @@ auc_df <- fitted %>%
   map(~ .x %>% mutate(models = name_models)) %>% 
   bind_rows() %>% 
   mutate(pre_processing = token)
+
+
+# Plot performance:
   
 
 auc_df %>%
@@ -238,6 +252,7 @@ auc_df %>%
   geom_col(width = 0.2) +
   facet_wrap(~ pre_processing) +
   theme_minimal() +
+  theme(panel.grid.major.y = element_blank()) +
   xlab("Area under the Curve (AUC)") +
   ylab("Algorithm")
 
@@ -245,6 +260,7 @@ auc_df %>%
 
 
 # Extend on "real" test set ----
+# We use only the best model i.e. LASSO with words tokenization
 
 
 predict(model, tidy_tweets_topwords_test %>% select(-id))$pred %>% 
@@ -258,26 +274,7 @@ predict(model, tidy_tweets_topwords_test %>% select(-id))$pred %>%
 
 
 
-  
-# Grid search hyperparameters: ---- 
-  
-learner = create.Learner("SL.kernelKnn", tune = list(k = c(2:8)))
 
-cv_sl = SuperLearner(Y= ifelse(tidy_tweets_topwords_train$Author == "bernie",1,0), 
-                     X= tidy_tweets_topwords_train %>% select(-id,-Author),
-                     family = binomial(),
-                     SL.library = learner$names,
-                     cvControl = list(5))
-  
-cv_sl$cvRisk %>% 
-  stack() %>% 
-  mutate(ind = str_extract(ind, "\\d")) %>%
-  slice(1:9) %>% 
-  setNames(c("Risk","K")) %>% 
-  ggplot(aes(K, Risk, group = 1)) +
-  geom_line(col = "blue", size = 1.5) +
-  geom_point(col = "blue", alpha = 0.5, size = 3) +
-  theme_minimal()
   
     
     
