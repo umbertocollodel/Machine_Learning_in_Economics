@@ -254,18 +254,54 @@ auc_df %>%
   theme_minimal() +
   theme(panel.grid.major.y = element_blank()) +
   xlab("Area under the Curve (AUC)") +
-  ylab("Algorithm")
+  ylab("Algorithm") +
+  theme(axis.text.x = element_text(angle = 270)) +
+  theme(strip.text.x = element_text(size=14),
+        axis.text.x = element_text(size = 20),
+        axis.text.y = element_text(size = 20),
+        axis.title = element_text(size = 22))
 
+
+# Export:
+
+export_path="../Machine_learning_for_economics_material/output/homework_1/figures/"
+ggsave(paste0(export_path,"performance.pdf"))
 
 
 
 # Extend on "real" test set ----
+
+
+# What was the optimizing threshold on the test set?
+
+
+
 # We use only the best model i.e. LASSO with words tokenization
+
 
 predict(model[[3]], tidy_tweets_topwords[[6]] %>% select(-id))$pred %>% 
   data.frame(fitted = .) %>% 
-  mutate(fitted = round(fitted,2)) 
+  mutate(fitted = round(fitted,2)) %>% 
+  mutate(dummy = case_when(fitted >0.5 ~ "bernie",
+                           T ~ "trump")) %>% 
+  ggplot(aes(fitted, fill = dummy)) +
+  geom_density(col = "white",alpha = 0.4) +
+  xlab("") +
+  ylab("") +
+  labs(fill = "") +
+  theme_minimal() +
+  scale_fill_manual(values = c("#0000ff","#ff0000")) +
+  theme(legend.position = "bottom", 
+        legend.text = element_text(size=18)) +
+  theme(axis.text.x = element_text(size = 20),
+        axis.text.y = element_text(size = 20),
+        axis.title = element_text(size = 22))
 
+ggsave(paste0(export_path,"fitted.pdf"))
+  
+# Footnote:
+
+footnote=c("")
 
 
 
