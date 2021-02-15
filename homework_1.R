@@ -2,9 +2,10 @@
 
 # Change local_path to local directory where train and test.csv are lodged 
 # Change intermediate_path to local directory where you want all cleaned rds to be stored
-# Change export_path to local directory where you want figurese in the report to be stored
-
-# Estimated running time: about 3.5 minutes 
+# Change export_path_figures and export_path_tables to local directory where you want figures
+# and tables respectively.
+#
+# Script estimated running time: about 3.5 minutes 
 
 ##################################################
 
@@ -261,7 +262,7 @@ auc_df %>%
 
 # Export:
 
-export_path="../Machine_learning_for_economics_material/output/homework_1/figures/"
+export_path_figures="../Machine_learning_for_economics_material/output/homework_1/figures/"
 ggsave(paste0(export_path,"performance.pdf"))
 
 
@@ -340,7 +341,7 @@ test_predictions %>%
         axis.title = element_text(size = 22))
 
 
-ggsave(paste0(export_path,"fitted.pdf"))
+ggsave(paste0(export_path_figures,"fitted.pdf"))
   
 
 
@@ -348,11 +349,13 @@ ggsave(paste0(export_path,"fitted.pdf"))
 # Create and export text file: 
 
 
+export_path_tables="../Machine_learning_for_economics_material/output/homework_1/tables/"
+
 test_predictions %>% 
   mutate(dummy = case_when(fitted >optimal ~ 1,
                            T ~ 0)) %>% 
   select(dummy) %>% 
-  write.table("../Machine_learning_for_economics_material/output/homework_1/tables/prediction.txt",
+  write.table(paste0(export_path_tables,"prediction.txt"),
               row.names = F,
               col.names = F)
 
