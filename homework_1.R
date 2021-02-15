@@ -272,9 +272,40 @@ ggsave(paste0(export_path,"performance.pdf"))
 # Extend on "real" test set ----
 
 
-# What was the optimizing threshold on the test set?
+# What was the optimizing threshold on the previous test set?
+
+new <- fitted[[3]]$SL.glmnet_All %>% 
+  data.frame(fitted = .) %>% 
+  cbind(label_test_y[[3]]) %>% 
+  as_tibble() 
 
 
+# Calculate optimal threshold:
+
+
+calculate_threshold <- function(data, threshold){
+  
+  cbind(data, threshold) %>% 
+  mutate(classification = case_when(fitted > threshold ~ 1,
+                                    T~ 0)) %>% 
+  mutate(type_1 = case_when(Author == 1 & classification == 0 ~ 1,
+                            T ~ 0)) %>% 
+  mutate(type_2 = case_when(Author == 0 & classification == 1 ~ 1,
+                            T ~ 0)) %>% 
+  summarise_at(vars(contains("type")),funs(mean(.)*100)) %>% 
+  mutate(loss = type_1 + type_2) %>% 
+  .$loss
+  
+  
+  
+  }
+  
+  
+seq(0, 1, by = 0.025) %>% 
+  map(~ calculate_threshold(new,.x)) %>% 
+  bind_rows()
+
+  
 
 # We use only the best model i.e. LASSO with words tokenization
 
