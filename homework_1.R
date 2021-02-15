@@ -16,8 +16,7 @@ packages=c("tidyverse","stopwords","tidytext",
 
 
 
-packages %>% 
-  lapply(function(x){
+lapply(packages, function(x){
   do.call("require", list(x))
   }
 )
