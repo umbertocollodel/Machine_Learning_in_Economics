@@ -303,7 +303,7 @@ thresholds= seq(0, 1, by = 0.025)
 
 
 optimal=thresholds %>% 
-  map(~ calculate_threshold(new,.x)) %>%
+  map(~ calculate_threshold(result_label,.x)) %>%
   map(~ data.frame(loss = .)) %>%
   bind_rows() %>% 
   mutate(thresholds = thresholds )%>%
