@@ -316,9 +316,14 @@ optimal=thresholds %>%
 # We use only the best model i.e. LASSO with words tokenization
 
 
-predict(model[[3]], tidy_tweets_topwords[[6]] %>% select(-id))$pred %>% 
+test_predictions <- predict(model[[3]], tidy_tweets_topwords[[6]] %>% select(-id))$pred %>% 
   data.frame(fitted = .) %>% 
-  mutate(fitted = round(fitted,2)) %>% 
+  mutate(fitted = round(fitted,2)) 
+
+
+
+
+test_predictions %>% 
   mutate(dummy = case_when(fitted >optimal ~ "bernie",
                            T ~ "trump")) %>% 
   ggplot(aes(fitted, fill = dummy)) +
@@ -340,12 +345,10 @@ ggsave(paste0(export_path,"fitted.pdf"))
 
 
 
-# Create text file: 
+# Create and export text file: 
 
 
-predict(model[[3]], tidy_tweets_topwords[[6]] %>% select(-id))$pred %>% 
-  data.frame(fitted = .) %>% 
-  mutate(fitted = round(fitted,2)) %>% 
+test_predictions %>% 
   mutate(dummy = case_when(fitted >optimal ~ 1,
                            T ~ 0)) %>% 
   select(dummy) %>% 
