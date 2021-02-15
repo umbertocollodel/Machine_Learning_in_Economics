@@ -1,8 +1,3 @@
-# 1) Pre-processing of text data 
-# 2) Method
-# 3) Hyperparameter tuning
-# 4) Length of training data
-
 ############ INSTRUCTIONS TO RUN ###############
 
 # Change local_path to local directory where train and test.csv are lodged 
@@ -272,15 +267,15 @@ ggsave(paste0(export_path,"performance.pdf"))
 # Extend on "real" test set ----
 
 
-# What was the optimizing threshold on the previous test set?
+# Results on the labelled test set for the winning model:
 
-new <- fitted[[3]]$SL.glmnet_All %>% 
+result_label <- fitted[[3]]$SL.glmnet_All %>% 
   data.frame(fitted = .) %>% 
   cbind(label_test_y[[3]]) %>% 
   as_tibble() 
 
 
-# Calculate optimal threshold:
+# Custom function to calculate type 1 and type 2 errors given an exogenous threshold:
 
 
 calculate_threshold <- function(data, threshold){
@@ -295,11 +290,11 @@ calculate_threshold <- function(data, threshold){
   summarise_at(vars(contains("type")),funs(mean(.)*100)) %>% 
   mutate(loss = type_1 + type_2) %>% 
   .$loss
-  
-  
-  
   }
   
+
+# Iterate functions over different thresholds to find minimum:
+
   
 thresholds= seq(0, 1, by = 0.025) 
 
@@ -309,7 +304,7 @@ optimal=thresholds %>%
   map(~ data.frame(loss = .)) %>% 
   bind_rows(.id = "threshold") %>%
   filter(loss == min(loss)) %>% 
-  dplyr::slice(2) %>% 
+  dplyr::slice(3) %>% 
   .$threshold
   
 
@@ -320,8 +315,8 @@ optimal=thresholds %>%
 
 predict(model[[3]], tidy_tweets_topwords[[6]] %>% select(-id))$pred %>% 
   data.frame(fitted = .) %>% 
-  mutate(fitted = round(fitted,2)) %>% 
-  mutate(dummy = case_when(fitted >0.5 ~ "bernie",
+  mutate(fitted = round(fitted,2)) % >% 
+  mutate(dummy = case_when(fitted >optimal ~ "bernie",
                            T ~ "trump")) %>% 
   ggplot(aes(fitted, fill = dummy)) +
   geom_density(col = "white",alpha = 0.4) +
@@ -336,13 +331,9 @@ predict(model[[3]], tidy_tweets_topwords[[6]] %>% select(-id))$pred %>%
         axis.text.y = element_text(size = 20),
         axis.title = element_text(size = 22))
 
+
 ggsave(paste0(export_path,"fitted.pdf"))
   
-# Footnote:
-
-footnote=c("")
-
-
 
 
 
