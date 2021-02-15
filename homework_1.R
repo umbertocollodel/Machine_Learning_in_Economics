@@ -4,6 +4,8 @@
 # Change intermediate_path to local directory where you want all cleaned rds to be stored
 # Change export_path to local directory where you want figurese in the report to be stored
 
+# Estimated running time: about 3.5 minutes 
+
 ##################################################
 
 # Install and load all required packages ----
@@ -344,3 +346,4 @@ ggsave(paste0(export_path,"fitted.pdf"))
   
     
     
+
