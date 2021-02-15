@@ -262,13 +262,12 @@ auc_df %>%
 # Extend on "real" test set ----
 # We use only the best model i.e. LASSO with words tokenization
 
-
-predict(model, tidy_tweets_topwords_test %>% select(-id))$pred %>% 
-  round(.,2) %>% 
+predict(model[[3]], tidy_tweets_topwords[[6]] %>% select(-id))$pred %>% 
   data.frame(fitted = .) %>% 
-  ggplot(aes(fitted)) +
-  geom_density() +
-  theme_minimal()
+  mutate(fitted = round(fitted,2)) 
+
+
+
 
 
 
