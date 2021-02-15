@@ -301,8 +301,9 @@ thresholds= seq(0, 1, by = 0.025)
 
 optimal=thresholds %>% 
   map(~ calculate_threshold(new,.x)) %>%
-  map(~ data.frame(loss = .)) %>% 
-  bind_rows(.id = "threshold") %>%
+  map(~ data.frame(loss = .)) %>%
+  bind_rows() %>% 
+  mutate(thresholds = thresholds )%>%
   filter(loss == min(loss)) %>% 
   dplyr::slice(3) %>% 
   .$threshold
@@ -315,7 +316,7 @@ optimal=thresholds %>%
 
 predict(model[[3]], tidy_tweets_topwords[[6]] %>% select(-id))$pred %>% 
   data.frame(fitted = .) %>% 
-  mutate(fitted = round(fitted,2)) % >% 
+  mutate(fitted = round(fitted,2)) %>% 
   mutate(dummy = case_when(fitted >optimal ~ "bernie",
                            T ~ "trump")) %>% 
   ggplot(aes(fitted, fill = dummy)) +
