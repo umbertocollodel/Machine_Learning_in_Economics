@@ -340,7 +340,18 @@ ggsave(paste0(export_path,"fitted.pdf"))
 
 
 
+# Create text file: 
 
+
+predict(model[[3]], tidy_tweets_topwords[[6]] %>% select(-id))$pred %>% 
+  data.frame(fitted = .) %>% 
+  mutate(fitted = round(fitted,2)) %>% 
+  mutate(dummy = case_when(fitted >optimal ~ 1,
+                           T ~ 0)) %>% 
+  select(dummy) %>% 
+  write.table("../Machine_learning_for_economics_material/output/homework_1/tables/prediction.txt",
+              row.names = F,
+              col.names = F)
 
 
   
