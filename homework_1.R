@@ -2,6 +2,7 @@
 
 # Change local_path to local directory where train and test.csv are lodged 
 # Change intermediate_path to local directory where you want all cleaned rds to be stored
+# Change export_path to local directory where you want figurese in the report to be stored
 
 ##################################################
 
