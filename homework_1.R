@@ -301,9 +301,17 @@ calculate_threshold <- function(data, threshold){
   }
   
   
-seq(0, 1, by = 0.025) %>% 
-  map(~ calculate_threshold(new,.x)) %>% 
-  bind_rows()
+thresholds= seq(0, 1, by = 0.025) 
+
+
+optimal=thresholds %>% 
+  map(~ calculate_threshold(new,.x)) %>%
+  map(~ data.frame(loss = .)) %>% 
+  bind_rows(.id = "threshold") %>%
+  filter(loss == min(loss)) %>% 
+  dplyr::slice(2) %>% 
+  .$threshold
+  
 
   
 
