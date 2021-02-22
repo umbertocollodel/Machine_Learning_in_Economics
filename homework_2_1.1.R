@@ -40,15 +40,18 @@ generate_data <- function(N=500, k=50, true_beta=1) {
   return(dgp)
 }
 
+# Set seed ----
+
+set.seed(12)
+
 
 
 # Simulation of parameter beta distribution with OLS and LASSO ----
 
 ## OLS
 
-beta_X = c()
 
-ols_estimate_dist <- 1:250 %>% 
+ols_estimate_dist <- 1:100 %>% 
     map(function(x){
       tryCatch({
       print(x)
@@ -81,37 +84,44 @@ mean_estimator=c(mean(ols_estimate_dist$estimate))
 ## LASSO
 
 
-beta_X = c()
-for (i in 1:200) {
-  print(i)
-  dgp = generate_data()
-  
-  SL.library <- "SL.glmnet" 
-    sl_lasso <- SuperLearner(Y = dgp$y,
-                             X = data.frame(x=dgp$x, w=dgp$w), 
-                             family = gaussian(),
-                             SL.library = SL.library, 
-                             cvControl = list(V=0))
-  
-  beta_X = c(beta_X, coef(sl_lasso$fitLibrary$SL.glmnet_All$object, s="lambda.min")[2])
-}
+lasso_estimate_dist <- 1:100 %>% 
+  map(function(x){
+    tryCatch({
+      print(x)
+      dgp = generate_data()
+      SL.library <- "SL.glmnet"
+      sl_lm <- SuperLearner(Y = dgp$y,
+                            X = data.frame(x=dgp$x, w=dgp$w), 
+                            family = gaussian(),
+                            SL.library = SL.library, 
+                            cvControl = list(V=0))},
+      error = function(e){
+        cat(crayon::bgRed("Error: LASSO model not running!"))
+      }
+    )
+  }
+  ) %>% 
+  map(~ coef(.x$fitLibrary$SL.glmnet_All$object, s="lambda.min")[2]) %>%
+  map(~ data.frame(estimate = .x)) %>% 
+  bind_rows(.id = "replication") 
 
-beta_X_df <- data.frame(beta_X=beta_X)
-
-ggplot(beta_X_df, aes(x = beta_X)) + 
-  geom_histogram(binwidth = 0.02) +
+lasso_estimate_dist %>% 
+  ggplot(aes(estimate)) +
+  geom_density() +
   theme_minimal()
 
-mean_estimator=c(mean_estimator, mean(beta_X_df$beta_X))
+
+mean_estimator=c(mean_estimator, mean(lasso_estimate_dist$estimate))
 
 
 # Double de-biased LASSO ----
 
-beta_X = c()
-for (i in 1:100) {
-  print(i)
-  dgp = generate_data()
-  
+double_lasso_dist <- 1:100 %>% 
+  map(function(x){
+    tryCatch({
+      print(x)
+      dgp = generate_data()
+      
   SL.library <- lasso$names
   sl_lasso <- SuperLearner(Y = dgp$y,
                            X = data.frame(x=dgp$x, w=dgp$w), 
@@ -130,19 +140,28 @@ for (i in 1:100) {
   kept_variables2 <- which(get_lasso_coeffs(sl_pred_x)!=0) 
   kept_variables2 <- kept_variables2[kept_variables2>0]
   
-  sl_screening_lasso <- SuperLearner(Y = dgp$y,
-                                     X = data.frame(x = dgp$x, w = dgp$w[, c(kept_variables, kept_variables2)]), 
+  SuperLearner(Y = dgp$y,
+               X = data.frame(x = dgp$x, w = dgp$w[, c(kept_variables, kept_variables2)]), 
                                      family = gaussian(),
                                      SL.library = "SL.lm", 
-                                     cvControl = list(V=0))
+                                     cvControl = list(V=0))},
+  error = function(e){
+    cat(crayon::bgRed("Error: double debiasing not running!"))
+  })
+  }) %>%
+  map(~ coef(.x$fitLibrary$SL.lm_All$object)[2]) %>% 
+  bind_rows(.id = "replication") %>% 
+  rename(estimate = x) 
   
-  beta_X = c(beta_X, coef(sl_screening_lasso$fitLibrary$SL.lm_All$object)[2])
-}
+  
+  
+double_lasso_dist %>% 
+  ggplot(aes(estimate)) +
+  geom_density() +
+  theme_minimal()
 
-beta_X_df <- data.frame(beta_X=beta_X)
-ggplot(beta_X_df, aes(x = beta_X)) + geom_histogram(binwidth = 0.02)
 
-mean_estimator=c(mean_estimator, mean(beta_X_df$beta_X))
+mean_estimator=c(mean_estimator, mean(double_lasso_dist$estimate))
 
 
 # Naive Frisch-Waugh + ML Method of Choice
