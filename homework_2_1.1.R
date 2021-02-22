@@ -164,13 +164,14 @@ double_lasso_dist %>%
 mean_estimator=c(mean_estimator, mean(double_lasso_dist$estimate))
 
 
-# Naive Frisch-Waugh + ML Method of Choice
+# Naive Frisch-Waugh + ML Method of Choice ----
 
 
-beta_X = c()
-for (i in 1:30) {
-  print(i)
-  dgp = generate_data()
+naive_dist <- 1:10 %>% 
+  map(function(x){
+    tryCatch({
+      print(x)
+      dgp = generate_data()
   
   sl_x = SuperLearner(Y = dgp$x, 
                       X = data.frame(w=dgp$w), # the data used to train the model
@@ -188,26 +189,29 @@ for (i in 1:30) {
     y_hat <- sl_y$SL.predict
     res_x = dgp$x - x_hat
     res_y = dgp$y - y_hat
-    beta = (mean(res_x*res_y))/(mean(res_x**2)) # (coefficient of regression of res_y on res_x)
-  beta_X = c(beta_X, beta)
-}
+    beta = (mean(res_x*res_y))/(mean(res_x**2))
+    return(beta)}, # (coefficient of regression of res_y on res_x)
+  error = function(e){
+    cat(crayon::bgRed("Frisch-Waugh not running!"))
+  })
+  }) %>% 
+  map(~ data.frame(estimate = .x)) %>% 
+  bind_rows(.id = "replication") 
 
-beta_X_df <- data.frame(beta_X=beta_X)
-ggplot(beta_X_df, aes(x = beta_X)) + geom_histogram(binwidth = 0.02)
 
-
-mean(beta_X_df$beta_X)
+mean_estimator=c(mean_estimator, mean(naive_dist$estimate))
 
 # Fritsch-Waugh Theorem does not work in non-linear cases!!
 
 
 # Removing bias ----
 
-beta_X = c()
-for (i in 1:30) {
-  print(i)
-  dgp = generate_data()
-  
+removing_bias_dist <- 1:10 %>% 
+  map(function(x){
+    tryCatch({
+      print(x)
+      dgp = generate_data()
+      
   split <- sample(seq_len(length(dgp$y)), size = ceiling(length(dgp$y)/2))
   
   dgp1 = list(y = dgp$y[split], x = dgp$x[split], w = dgp$w[split,])
@@ -233,13 +237,17 @@ for (i in 1:30) {
   res_x = dgp2$x - x_hat
   res_y = dgp2$y - y_hat
   beta = (mean(res_x*res_y))/(mean(res_x**2)) # (coefficient of regression of res_y on res_x)
-  beta_X = c(beta_X, beta)
-  }
+  return(beta)},
+  error = cat(crayon::bgRed("Correction of Frisch-Waugh not running!"))
+    )}
+  ) %>%
+  map(~ data.frame(estimate = .x)) %>% 
+  bind_rows(.id = "replication") 
+    
 
-beta_X_df <- data.frame(beta_X=beta_X)
-ggplot(beta_X_df, aes(x = beta_X)) + geom_histogram(binwidth = 0.02)
 
-mean(beta_X_df$beta_X)
+mean_estimator=c(mean_estimator, mean(removing_bias_dist$estimate))
+
 
 
 
