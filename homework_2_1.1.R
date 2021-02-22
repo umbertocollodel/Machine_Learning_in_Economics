@@ -1,6 +1,6 @@
 # Installs packages if not already installed, then loads packages -----
 list.of.packages <- c("SuperLearner", "ggplot2", "glmnet", "clusterGeneration", "mvtnorm", "xgboost",
-                      "crayon")
+                      "crayon","tidyverse")
 new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
 if(length(new.packages)) install.packages(new.packages, repos = "http://cran.us.r-project.org")
 
@@ -252,7 +252,7 @@ mean_estimator=c(mean_estimator, mean(removing_bias_dist$estimate))
 
 # Double Machine Learning -----
 
-doubleml <- function(X, W, Y, SL.library.X = "SL.lm",  SL.library.Y = "SL.lm", family.X = gaussian(), family.Y = gaussian()) {
+doubleml <- function(X, W, Y, SL.library.X = "SL.xgboost",  SL.library.Y = "SL.xgboost", family.X = gaussian(), family.Y = gaussian()) {
   
   ### STEP 1: split X, W and Y into 2 random sets (done for you)
   split <- sample(seq_len(length(Y)), size = ceiling(length(Y)/2))
@@ -321,17 +321,28 @@ doubleml <- function(X, W, Y, SL.library.X = "SL.lm",  SL.library.Y = "SL.lm", f
 
   beta=mean(beta_df$coefficient,na.rm = T)
 
-
+  return(beta)
   
   ### STEP 6: compute standard errors (done for you). This is just the usual OLS standard errors in the regression res_y = res_x*beta + eps.
   
-  psi_stack = c((res_y_1-res_x_1*beta), (res_y_2-res_x_2*beta))
-  res_stack = c(res_x_1, res_x_2)
-  se = sqrt(mean(res_stack^2)^(-2)*mean(res_stack^2*psi_stack^2))/sqrt(length(Y))
+  #psi_stack = c((res_y_1-res_x_1*beta), (res_y_2-res_x_2*beta))
+  #res_stack = c(res_x_1, res_x_2)
+  #se = sqrt(mean(res_stack^2)^(-2)*mean(res_stack^2*psi_stack^2))/sqrt(length(Y))
   
-  return(c(beta,se))
 }
 
+double_ml_dist <- 1:10 %>% 
+  map(function(x){
+    print(x)
+    dgp = generate_data()
+    
+    doubleml(dgp$x,dgp$w,dgp$y)
+    
+  }) %>% 
+  map(~ data.frame(beta = .x)) %>% 
+  bind_rows()
 
-doubleml(dgp$x, dgp$w, dgp$y)
-
+double_ml_dist %>% 
+ggplot(aes(beta)) +
+  geom_density() +
+  theme_minimal()
