@@ -319,29 +319,37 @@ doubleml <- function(X, W, Y, SL.library.X = "SL.xgboost",  SL.library.Y = "SL.x
 
 
   beta=mean(beta_df$coefficient,na.rm = T)
-
-  return(beta)
-  
   ### STEP 6: compute standard errors (done for you). This is just the usual OLS standard errors in the regression res_y = res_x*beta + eps.
   
-  #psi_stack = c((res_y_1-res_x_1*beta), (res_y_2-res_x_2*beta))
-  #res_stack = c(res_x_1, res_x_2)
-  #se = sqrt(mean(res_stack^2)^(-2)*mean(res_stack^2*psi_stack^2))/sqrt(length(Y))
   
+
+  psi_stack = c((residuals_y[[1]] - residuals_x[[1]]*beta_df[1,1]), (residuals_y[[2]] - residuals_x[[2]]*beta_df[[2,1]]))
+  res_stack = c(residuals_x[[1]], residuals_x[[2]])
+  se = sqrt(mean(res_stack^2)^(-2)*mean(res_stack^2*psi_stack^2))/sqrt(length(Y))
+  
+  return(c(beta = beta, se = se))
 }
 
+
+# Run double machine learning simulation -----
 
 
 double_ml_dist <- 1:10 %>% 
   map(function(x){
+    tryCatch({
     print(x)
     dgp = generate_data()
     
     doubleml(dgp$x,dgp$w,dgp$y)
-    
+    },
+    error = function(e){
+      cat(crayon::bgRed("Double ML not working!"))
+    })
   }) %>% 
-  map(~ data.frame(beta = .x)) %>% 
+  map(~ data.frame(beta = .x[1])) %>% 
   bind_rows()
+
+
 
 double_ml_dist %>% 
 ggplot(aes(beta)) +
