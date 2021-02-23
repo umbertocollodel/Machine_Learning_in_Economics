@@ -350,8 +350,9 @@ double_ml_dist <- 1:10 %>%
   bind_rows()
 
 
+# Distribution of estimator: 
 
 double_ml_dist %>% 
 ggplot(aes(beta)) +
-  geom_density() +
+  geom_histogram() +
   theme_minimal()
