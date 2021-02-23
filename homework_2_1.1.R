@@ -270,14 +270,13 @@ doubleml <- function(X, W, Y, SL.library.X = "SL.xgboost",  SL.library.Y = "SL.x
 
   fitted_x <- 1:2 %>% 
   map(~ SuperLearner(Y = get(paste0("X",.x)), 
-                    X = get(paste0("W",.x)), 
+                    X = data.frame(get(paste0("W",.x))), 
                     family = family.X, 
                     SL.library = SL.library.X,
                     cvControl = list(V=0))
   ) %>% 
     map2(2:1, ~ predict(.x, get(paste0("W",.y)))$pred) %>% 
     map(~ .x[,1])
-  
   
   ### STEP 2b: get the residuals X - X_hat on set 2 and on set 1
 
@@ -288,7 +287,7 @@ doubleml <- function(X, W, Y, SL.library.X = "SL.xgboost",  SL.library.Y = "SL.x
   
   fitted_y <- 1:2 %>% 
     map(~ SuperLearner(Y = get(paste0("Y",.x)), 
-                       X = get(paste0("W",.x)), 
+                       X = data.frame(get(paste0("W",.x))), 
                        family = family.Y, 
                        SL.library = SL.library.Y,
                        cvControl = list(V=0))
@@ -330,6 +329,8 @@ doubleml <- function(X, W, Y, SL.library.X = "SL.xgboost",  SL.library.Y = "SL.x
   #se = sqrt(mean(res_stack^2)^(-2)*mean(res_stack^2*psi_stack^2))/sqrt(length(Y))
   
 }
+
+
 
 double_ml_dist <- 1:10 %>% 
   map(function(x){
