@@ -1,6 +1,7 @@
 ###### INSTRUCTIONS TO RUN -----
 
 # Change data_path to path of local raw data files
+# Change export_path_tables to path where to export output tables
 # Running time: approx. ...
 
 ######
