@@ -40,6 +40,16 @@ generate_data <- function(N=500, k=50, true_beta=1) {
   return(dgp)
 }
 
+
+# Custom function to get LASSO coefficients ----
+
+get_lasso_coeffs <- function(sl_lasso){
+  optimal_lambda_index <- which.min(sl_lasso$fitLibrary$lasso_1_All$object$cvm)
+  return(sl_lasso$fitLibrary$lasso_1_All$object$glmnet.fit$beta[,optimal_lambda_index])
+}
+
+
+
 # Set seed ----
 
 set.seed(12)
@@ -63,14 +73,14 @@ ols_estimate_dist <- 1:100 %>%
                             SL.library = SL.library, 
                             cvControl = list(V=0))},
       error = function(e){
-        cat(crayon::bgRed("Error: linear model not running!"))
+        cat(crayon::bgRed("Error: linear model not running!\n"))
       }
       )
       }
       ) %>% 
     map(~ coef(.x$fitLibrary$SL.lm_All$object)[2]) %>% 
     bind_rows(.id = "replication") %>% 
-    rename(estimate = x)
+    rename(estimate = x) 
 
 
 ols_estimate_dist %>% 
@@ -78,7 +88,7 @@ ols_estimate_dist %>%
   geom_density() +
   theme_minimal()
 
-mean_estimator=c(mean(ols_estimate_dist$estimate))
+mean_estimator=c(OLS = mean(ols_estimate_dist$estimate))
 
 
 ## LASSO
@@ -96,7 +106,7 @@ lasso_estimate_dist <- 1:100 %>%
                             SL.library = SL.library, 
                             cvControl = list(V=0))},
       error = function(e){
-        cat(crayon::bgRed("Error: LASSO model not running!"))
+        cat(crayon::bgRed("Error: LASSO model not running!\n"))
       }
     )
   }
@@ -111,7 +121,7 @@ lasso_estimate_dist %>%
   theme_minimal()
 
 
-mean_estimator=c(mean_estimator, mean(lasso_estimate_dist$estimate))
+mean_estimator=c(mean_estimator, LASSO = mean(lasso_estimate_dist$estimate))
 
 
 # Double de-biased LASSO ----
@@ -146,7 +156,7 @@ double_lasso_dist <- 1:100 %>%
                                      SL.library = "SL.lm", 
                                      cvControl = list(V=0))},
   error = function(e){
-    cat(crayon::bgRed("Error: double debiasing not running!"))
+    cat(crayon::bgRed("Error: double debiasing not running!\n"))
   })
   }) %>%
   map(~ coef(.x$fitLibrary$SL.lm_All$object)[2]) %>% 
@@ -161,13 +171,13 @@ double_lasso_dist %>%
   theme_minimal()
 
 
-mean_estimator=c(mean_estimator, mean(double_lasso_dist$estimate))
+mean_estimator=c(mean_estimator, `Double de-biased LASSO` = mean(double_lasso_dist$estimate))
 
 
 # Naive Frisch-Waugh + ML Method of Choice ----
 
 
-naive_dist <- 1:10 %>% 
+naive_dist <- 1:100 %>% 
   map(function(x){
     tryCatch({
       print(x)
@@ -199,14 +209,14 @@ naive_dist <- 1:10 %>%
   bind_rows(.id = "replication") 
 
 
-mean_estimator=c(mean_estimator, mean(naive_dist$estimate))
+mean_estimator=c(mean_estimator, ` Naive Frisch Waugh + XGboost` = mean(naive_dist$estimate))
 
 # Fritsch-Waugh Theorem does not work in non-linear cases!!
 
 
 # Removing bias ----
 
-removing_bias_dist <- 1:10 %>% 
+removing_bias_dist <- 1:100 %>% 
   map(function(x){
     tryCatch({
       print(x)
@@ -246,7 +256,7 @@ removing_bias_dist <- 1:10 %>%
     
 
 
-mean_estimator=c(mean_estimator, mean(removing_bias_dist$estimate))
+mean_estimator=c(mean_estimator, `Frisch Waugh with sample splitting + XGboost` = mean(removing_bias_dist$estimate))
 
 
 
@@ -334,7 +344,7 @@ doubleml <- function(X, W, Y, SL.library.X = "SL.xgboost",  SL.library.Y = "SL.x
 # Run double machine learning simulation -----
 
 
-double_ml_dist <- 1:10 %>% 
+double_ml_dist <- 1:100 %>% 
   map(function(x){
     tryCatch({
     print(x)
@@ -356,3 +366,23 @@ double_ml_dist %>%
 ggplot(aes(beta)) +
   geom_histogram() +
   theme_minimal()
+
+
+mean_estimator=c(mean_estimator, `Double machine learning` = mean(removing_bias_dist$estimate))
+
+
+# Export result of simulations -----
+
+export_path_tables="../Machine_learning_for_economics_material/output/homework_2/tables/"
+
+
+mean_estimator %>% 
+  stack() %>% 
+  setNames(c("Estimate of Beta","Method")) %>% 
+  select(Method, everything()) %>% 
+  stargazer(rownames = F,
+            summary = F,
+            out = paste0(export_path_tables,"comparison_beta.tex"))
+
+
+
