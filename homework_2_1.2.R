@@ -17,6 +17,9 @@ k2ml <- function(X, W, Y, K=5, SL.library.X = "SL.xgboost",  SL.library.Y = "SL.
   #' 
   #' @return named vector with estimated treatment coefficient (average of k-splitting) and associated standard error
   
+  install.packages("caret")
+  library(caret)
+  
   ### STEP 1: split X,Y and W in k-folds
   
   split_index = X %>% createFolds(K)
