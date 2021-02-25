@@ -1,7 +1,7 @@
 # Custom function for Double ML -----
 
 
-k2ml <- function(X, W, Y, K=5, SL.library.X = "SL.xgboost",  SL.library.Y = "SL.xgboost", family.X = gaussian(), family.Y = gaussian()) {
+k2ml <- function(X, W, Y, K, SL.library.X,  SL.library.Y, family.X, family.Y) {
   
   
   #' Applies double ML (Chernozukov et al., 2018) to treatment estimation problems
