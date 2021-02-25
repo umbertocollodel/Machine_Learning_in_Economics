@@ -248,7 +248,9 @@ removing_bias_dist <- 1:100 %>%
   res_y = dgp2$y - y_hat
   beta = (mean(res_x*res_y))/(mean(res_x**2)) # (coefficient of regression of res_y on res_x)
   return(beta)},
-  error = cat(crayon::bgRed("Correction of Frisch-Waugh not running!"))
+  error = function(e){
+    cat(crayon::bgRed("Correction of Frisch-Waugh not running!"))
+  }
     )}
   ) %>%
   map(~ data.frame(estimate = .x)) %>% 
