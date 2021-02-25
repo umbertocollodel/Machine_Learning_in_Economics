@@ -1,3 +1,14 @@
+# Additional packages required ----
+
+list.of.packages <- c("tidyverse","caret")
+new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
+if(length(new.packages)) install.packages(new.packages, repos = "http://cran.us.r-project.org")
+
+invisible(lapply(list.of.packages, library, character.only = TRUE))
+
+
+
+
 # Custom function for Double ML -----
 
 
@@ -17,12 +28,6 @@ k2ml <- function(X, W, Y, K, SL.library.X,  SL.library.Y, family.X, family.Y) {
   #' 
   #' @return named vector with estimated treatment coefficient (average of k-splitting) and associated standard error
   
-  # Passage required only for automated script homework - for external use comment!
-  
-  if(!any(str_detect(search(),"caret"))){
-  install.packages("caret")
-  library(caret)
-  }
   
   ### STEP 1: split X,Y and W in k-folds
   
@@ -116,7 +121,6 @@ k2ml <- function(X, W, Y, K, SL.library.X,  SL.library.Y, family.X, family.Y) {
   return(c(beta = beta, se = se))
   
 }
-
 
 
 
