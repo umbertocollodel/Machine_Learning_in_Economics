@@ -110,9 +110,9 @@ df <-  read.csv(data_path) %>%
 
 # Double ML ----
 
-set.seed(245)
+set.seed(256)
 
-doubleml <- doubleml(df$treat_neighbors, df %>% dplyr::select(-outcome_voted,-treat_neighbors) %>% as.matrix(), df$outcome_voted,
+doubleml_df <- doubleml(df$treat_neighbors, df %>% dplyr::select(-outcome_voted,-treat_neighbors) %>% as.matrix(), df$outcome_voted,
      family.X = binomial(), family.Y = binomial()) %>% 
   stack() %>% 
   spread(ind,values) %>% 
@@ -159,7 +159,7 @@ lm_controls <- lm(formula, df) %>%
 
 export_path_tables="../Machine_learning_for_economics_material/output/homework_2/tables/"
 
-rbind(lm_no_controls, lm_controls, doubleml) %>%
+rbind(lm_no_controls, lm_controls, doubleml_df) %>%
   dplyr::select(Estimation, Estimate, `Std. Error`) %>%
   mutate(`95% - Lower` = Estimate - 1.96*`Std. Error`,
          `95% - Upper `= Estimate + 1.96*`Std. Error`) %>% 
