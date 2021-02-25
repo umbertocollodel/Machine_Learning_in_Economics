@@ -17,6 +17,8 @@ k2ml <- function(X, W, Y, K=5, SL.library.X = "SL.xgboost",  SL.library.Y = "SL.
   #' 
   #' @return named vector with estimated treatment coefficient (average of k-splitting) and associated standard error
   
+  # Passage required only for automated script homework - for external use comment!
+  
   install.packages("caret")
   library(caret)
   
