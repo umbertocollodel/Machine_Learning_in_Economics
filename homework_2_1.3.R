@@ -134,7 +134,7 @@ lm_no_controls <- lm(outcome_voted ~ treat_neighbors, df) %>%
 # OLS with controls ----
 
 
-controls <- df %>% 
+name_controls <- df %>% 
   names() %>% 
   str_subset(.,"treat_neighbors",negate = T) %>% 
   str_subset(.,"outcome_voted", negate = T) %>% 
