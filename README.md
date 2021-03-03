@@ -18,6 +18,8 @@ Part 2: we create a custom function for the double ML method described in Cherno
 Part 3: we apply the double machine learning function on real data. The following part is based on the article “Social Pressure and Voter Turnout: Evidence from a Large-Scale Field Experiment” by Gerber, Green and Larimer (2008). The article is about a very large field study where registed voters in the US were randomly selected and received letters encouraging them to vote. As the electoral role in the US is public and one can consult who voted, the researchers were able to analyse the effect of the letters on voter turnout. The data contains variables relating to the treatment (X), response (Y) and socio-electoral characteristics (W). We want to use double machine learning to estimate the coefficient β of X
 
 
+An extract:
+
 ```
 k2ml <- function(X, W, Y, K, SL.library.X,  SL.library.Y, family.X, family.Y)
 
