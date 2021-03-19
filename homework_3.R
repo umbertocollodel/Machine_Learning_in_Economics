@@ -61,13 +61,54 @@ causal_tree <- causalTree::causalTree(formula = tree_fml,
 rpart.plot(causal_tree, roundint = F)
 
 
+# Tree too deep and complex: prune with optimal cross-validation cp
+
+
 optimal_cp = causal_tree$cptable[which.min(causal_tree$cptable[,4]),1]
 
 pruned_tree <- prune(causal_tree, optimal_cp)
 rpart.plot(pruned_tree,roundint = F)
 
+# Run Honest tree -----
+
+set.seed(12)
+
+# Split the data
+
+index=sample(1:nrow(df), nrow(df)/2)
+
+df1=df[index,]
+df2=df[-index,]
 
 
+# Run the honest tree
+
+honest_tree <- honest.causalTree(formula = tree_fml,
+                                 data = df1,
+                                 treatment = df1$w,
+                                 est_data = df2,
+                                 est_treatment = df2$w,
+                                 split.alpha = 0.5,
+                                 split.Rule = "CT",
+                                 split.Honest = T,
+                                 cv.alpha = 0.5,
+                                 cv.option = "CT",
+                                 cv.Honest = T,
+                                 split.Bucket = T,
+                                 bucketNum = 5,
+                                 bucketMax = 100, # maximum number of buckets
+                                 minsize = 250) # number of observations in treatment and control on leaf
+
+rpart.plot(honest_tree, roundint = F)
+
+
+# As before, tree too deep and complex: prune with optimal cross-validation cp
+
+
+optimal_cp = honest_tree$cptable[which.min(honest_tree$cptable[,4]),1]
+
+pruned_tree <- prune(honest_tree, optimal_cp)
+rpart.plot(pruned_tree,roundint = F)
 
 
 
