@@ -33,9 +33,7 @@ library(causalTree)
 
 raw_path="../Machine_learning_for_economics_material/raw_data/homework 3/welfare.rds"
 df=readRDS(raw_path)
-df %>% 
-  as_tibble() %>% 
-  select(y,w)
+
 
 # Get formula
 
@@ -63,6 +61,10 @@ causal_tree <- causalTree::causalTree(formula = tree_fml,
 rpart.plot(causal_tree, roundint = F)
 
 
+optimal_cp = causal_tree$cptable[which.min(causal_tree$cptable[,4]),1]
+
+pruned_tree <- prune(causal_tree, optimal_cp)
+rpart.plot(pruned_tree,roundint = F)
 
 
 
