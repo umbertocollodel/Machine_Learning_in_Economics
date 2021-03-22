@@ -91,8 +91,15 @@ ggsave(paste0(export_path,"causal_tree_pruned.pdf"))
 
 # Applying Best Linear Predictor -----
 
+# Create dataframe with no missing controls in observations:
 
-### Creates a vector of 0s and a vector of 1s of length n (hack for later usage)
+
+df_na_clean <- df %>% 
+  filter(complete.cases(.))
+
+
+# Custom functions:
+
 zeros <- function(n) {
   return(integer(n))
 }
@@ -100,11 +107,6 @@ ones <- function(n) {
   return(integer(n)+1)
 }
 
-df_na_clean <- df %>% 
-  filter(complete.cases(.))
-
-
-# Custom function:
 
 blp <- function(Y, W, X, prop_scores=F) {
   
@@ -166,9 +168,6 @@ blp <- function(Y, W, X, prop_scores=F) {
 }
 
 
-# Table from BLP ----
-
-
 table_from_blp <-function(model) {
   thetahat <- model%>% 
     .$coefficients %>%
@@ -187,7 +186,7 @@ table_from_blp <-function(model) {
 
 
 
-# Run BLP -----
+# Run BLP:
 
 output <- rerun(10, table_from_blp(blp(df_na_clean$y, df_na_clean %>% select(-w,-y), df_na_clean$w))) %>% 
   bind_rows %>%
