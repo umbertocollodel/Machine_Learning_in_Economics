@@ -9,7 +9,8 @@
 # Install and load all required packages ----
 
 
-packages=c("tidyverse", "devtools")
+packages=c("tidyverse", "devtools","caret",
+           "SuperLearner")
 
 
 
@@ -91,7 +92,19 @@ ggsave(paste0(export_path,"causal_tree_pruned.pdf"))
 # Applying Best Linear Predictor -----
 
 
-# Custome function:
+### Creates a vector of 0s and a vector of 1s of length n (hack for later usage)
+zeros <- function(n) {
+  return(integer(n))
+}
+ones <- function(n) {
+  return(integer(n)+1)
+}
+
+df_na_clean <- df %>% 
+  filter(complete.cases(.))
+
+
+# Custom function:
 
 blp <- function(Y, W, X, prop_scores=F) {
   
@@ -107,6 +120,7 @@ blp <- function(Y, W, X, prop_scores=F) {
   Wa = W[split, ]
   Wb = W[-split, ]
   
+  
   ### STEP 2a: (Propensity score) On set A, train a model to predict X using W. Predict on set B.
   if (prop_scores==T) {
     sl_w1 = SuperLearner(Y = Xa, 
@@ -120,7 +134,6 @@ blp <- function(Y, W, X, prop_scores=F) {
   } else {
     p <- rep(mean(Xa), length(Xb))
   }
-  
   ### STEP 2b let D = W(set B) - propensity score.
   D <- Xb-p
   
@@ -131,6 +144,7 @@ blp <- function(Y, W, X, prop_scores=F) {
                       SL.library = "SL.xgboost", 
                       cvControl = list(V=0))
   
+
   pred_y1 = predict(sl_y, newdata=data.frame(X=ones(nrow(Wb)), Wb))
   
   pred_0s <- predict(sl_y, data.frame(X=zeros(nrow(Wb)), Wb), onlySL = T)
@@ -152,5 +166,50 @@ blp <- function(Y, W, X, prop_scores=F) {
 }
 
 
+# Table from BLP ----
 
+
+table_from_blp <-function(model) {
+  thetahat <- model%>% 
+    .$coefficients %>%
+    .[c("D","D:C")]
+  
+  # Confidence intervals
+  cihat <- confint(model)[c("D","D:C"),]
+  
+  res <- tibble(coefficient = c("beta1","beta2"),
+                estimates = thetahat,
+                ci_lower_90 = cihat[,1],
+                ci_upper_90 = cihat[,2])
+  
+  return(res)
+}
+
+
+
+# Run BLP -----
+
+output <- rerun(10, table_from_blp(blp(df_na_clean$y, df_na_clean %>% select(-w,-y), df_na_clean$w))) %>% 
+  bind_rows %>%
+  group_by(coefficient) %>%
+  summarize_all(median)
+
+
+# Plot results and export:
+
+
+output %>% 
+  ggplot(aes(x = coefficient,ymin = ci_lower_90, ymax = ci_upper_90, col = coefficient)) +
+  geom_errorbar(size = 1.5) +
+  labs(col = "") +
+  xlab("") +
+  ylim(-1,1) +
+  theme_minimal() +
+  theme(legend.position = "bottom",
+        legend.text = element_text(size = 14)) +
+  theme(axis.text.x = element_blank(),
+        axis.text = element_text(size = 18))
+  
+
+ggsave(paste0(export_path_figures,"blp_coefficients.pdf"))
 
