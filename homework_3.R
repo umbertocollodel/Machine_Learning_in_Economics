@@ -29,10 +29,12 @@ library(causalTree)
 
 # Applying Causal Trees ----
 
-# Read data
+# Read data: we keep only half of the original observations to reduce 
+# computational time
 
 raw_path="../Machine_learning_for_economics_material/raw_data/homework 3/welfare.rds"
-df=readRDS(raw_path)
+df=readRDS(raw_path) %>% 
+  slice(sample(nrow(.),nrow(.)/2))
 
 
 # Get formula
@@ -41,7 +43,7 @@ names_independent <- df %>%
   names() %>% 
   str_subset(.,"^y$",negate = T)
 
-tree_fml <- as.formula(paste("y", paste(names_independent, collapse = ' + '), sep = " ~ "))
+tree_fml=as.formula(paste("y", paste(names_independent, collapse = ' + '), sep = " ~ "))
 
 # Run causal tree
 
