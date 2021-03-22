@@ -79,33 +79,15 @@ rpart.plot(pruned_tree,
            branch = F,
            roundint = F)
 
+# Export:
 
-# Honest Tree ----
+export_path_figures="../Machine_learning_for_economics_material/output/homework_3/figures/"
 
 
-index=sample(1:nrow(df), nrow(df)*2/3)
-
-df1=df[index,]
-df2=df[-index,]
+ggsave(paste0(export_path,"causal_tree_pruned.pdf"))
 
 
 
-
-causal_tree <- causalTree::causalTree(formula = tree_fml,
-                                      data = df1,
-                                      treatment = df$w,
-                                      split.Rule = "CT", #causal tree
-                                      split.Honest = F, #will talk about this next
-                                      split.alpha = 1, #will talk about this next
-                                      cv.option = "CT",
-                                      cv.Honest = F,
-                                      split.Bucket = T, #each bucket contains bucketNum treated and bucketNum control units
-                                      bucketNum = 5, 
-                                      bucketMax = 100, 
-                                      minsize = 250) 
-
-
-rpart.plot(causal_tree, roundint = F)
 
 
 
