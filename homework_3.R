@@ -205,10 +205,125 @@ output %>%
   ylim(-1,1) +
   theme_minimal() +
   theme(legend.position = "bottom",
-        legend.text = element_text(size = 14)) +
+        legend.text = element_text(size = 16)) +
   theme(axis.text.x = element_blank(),
-        axis.text = element_text(size = 18))
+        axis.text = element_text(size = 20))
   
 
 ggsave(paste0(export_path_figures,"blp_coefficients.pdf"))
 
+
+# Applying GATES ----
+
+# Custom functions:
+
+
+gates <- function(Y, W, X, Q=4, prop_scores=F) {
+  
+  ### STEP 1: split the dataset into two sets, 1 and 2 (50/50)
+  split <- createFolds(1:length(Y), k=2)[[1]]
+  
+  Ya = Y[split]
+  Yb = Y[-split]
+  
+  Xa = X[split]
+  Xb = X[-split]
+  
+  Wa = W[split, ]
+  Wb = W[-split, ]
+  
+  ### STEP 2a: (Propensity score) On set A, train a model to predict X using W. Predict on set B.
+  if (prop_scores==T) {
+    sl_w1 = SuperLearner(Y = Xa, 
+                         X = Wa, 
+                         newX = Wb, 
+                         family = binomial(), 
+                         SL.library = "SL.xgboost", 
+                         cvControl = list(V=0))
+    
+    p <- sl_w1$SL.predict
+  } else {
+    p <- rep(mean(Xa), length(Xb))
+  }
+  
+  ### STEP 2b let D = W(set B) - propensity score.
+  D <- Xb-p
+  
+  ### STEP 3a: Get CATE (for example using xgboost) on set A. Predict on set B.
+  sl_y = SuperLearner(Y = Ya, 
+                      X = data.frame(X=Xa, Wa), 
+                      family = gaussian(), 
+                      SL.library = "SL.xgboost", 
+                      cvControl = list(V=0))
+  
+  pred_y1 = predict(sl_y, newdata=data.frame(X=ones(nrow(Wb)), Wb))
+  
+  pred_0s <- predict(sl_y, data.frame(X=zeros(nrow(Wb)), Wb), onlySL = T)
+  pred_1s <- predict(sl_y, data.frame(X=ones(nrow(Wb)), Wb), onlySL = T)
+  
+  cate <- pred_1s$pred - pred_0s$pred
+  
+  ### STEP 3b: divide the cate estimates into Q tiles, and call this object G. 
+  # Divide observations into n tiles
+  G <- data.frame(cate) %>% # replace cate with the name of your predictions object
+    ntile(Q) %>%  # Divide observations into Q-tiles
+    factor()
+  
+  ### STEP 4: Create a dataframe with Y, W (set B), D, G and p. Regress Y on group membership variables and covariates. 
+  df <- data.frame(Y=Yb, Wb, D, G, p)
+  
+  Wnames <- paste(colnames(Wb), collapse="+")
+  fml <- paste("Y ~",Wnames,"+ D:G")
+  model <- lm(fml, df, weights = 1/(p*(1-p))) 
+  
+  return(model) 
+}
+
+
+table_from_gates <-function(model) {
+  thetahat <- model%>% 
+    .$coefficients %>%
+    .[c("D:G1","D:G2","D:G3","D:G4")]
+  
+  # Confidence intervals
+  cihat <- confint(model)[c("D:G1","D:G2","D:G3","D:G4"),]
+  
+  res <- tibble(coefficient = c("gamma1","gamma2","gamma3","gamma4"),
+                estimates = thetahat,
+                ci_lower_90 = cihat[,1],
+                ci_upper_90 = cihat[,2])
+  
+  return(res)
+}
+
+
+
+# Run GATES:
+
+
+output <- rerun(10, table_from_gates(gates(df_na_clean$y, df_na_clean %>% select(-w,-y), df_na_clean$w))) %>% 
+  bind_rows %>%
+  group_by(coefficient) %>%
+  summarize_all(median)
+
+
+
+# Plot results and export:
+
+
+output %>% 
+  ggplot(aes(x = coefficient, ymin = ci_lower_90, ymax = ci_upper_90, col = coefficient)) +
+  geom_errorbar(size = 1.5, width = 0.4) +
+  ylim(-0.6,0.6) +
+  xlab("") +
+  labs(col="") +
+  theme_minimal() +
+  theme(legend.position = "bottom",
+        legend.text = element_text(size = 16)) +
+  theme(axis.text = element_text(size = 20),
+        axis.text.x = element_blank())
+
+
+ggsave(paste0(export_path_figures,"gates_coefficients.pdf"))
+
+  
