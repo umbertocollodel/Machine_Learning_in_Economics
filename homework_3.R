@@ -88,7 +88,68 @@ ggsave(paste0(export_path,"causal_tree_pruned.pdf"))
 
 
 
+# Applying Best Linear Predictor -----
 
+
+# Custome function:
+
+blp <- function(Y, W, X, prop_scores=F) {
+  
+  ### STEP 1: split the dataset into two sets, 1 and 2 (50/50)
+  split <- createFolds(1:length(Y), k=2)[[1]]
+  
+  Ya = Y[split]
+  Yb = Y[-split]
+  
+  Xa = X[split]
+  Xb = X[-split]
+  
+  Wa = W[split, ]
+  Wb = W[-split, ]
+  
+  ### STEP 2a: (Propensity score) On set A, train a model to predict X using W. Predict on set B.
+  if (prop_scores==T) {
+    sl_w1 = SuperLearner(Y = Xa, 
+                         X = Wa, 
+                         newX = Wb, 
+                         family = binomial(), 
+                         SL.library = "SL.xgboost", 
+                         cvControl = list(V=0))
+    
+    p <- sl_w1$SL.predict
+  } else {
+    p <- rep(mean(Xa), length(Xb))
+  }
+  
+  ### STEP 2b let D = W(set B) - propensity score.
+  D <- Xb-p
+  
+  ### STEP 3a: Get CATE (for example using xgboost) on set A. Predict on set B.
+  sl_y = SuperLearner(Y = Ya, 
+                      X = data.frame(X=Xa, Wa), 
+                      family = gaussian(), 
+                      SL.library = "SL.xgboost", 
+                      cvControl = list(V=0))
+  
+  pred_y1 = predict(sl_y, newdata=data.frame(X=ones(nrow(Wb)), Wb))
+  
+  pred_0s <- predict(sl_y, data.frame(X=zeros(nrow(Wb)), Wb), onlySL = T)
+  pred_1s <- predict(sl_y, data.frame(X=ones(nrow(Wb)), Wb), onlySL = T)
+  
+  cate <- pred_1s$pred - pred_0s$pred
+  
+  ### STEP 3b: Subtract the expected CATE from the CATE
+  C = cate-mean(cate)
+  
+  ### STEP 4: Create a dataframe with Y, W (set B), D, C and p. Regress Y on W, D and D*C. 
+  df <- data.frame(Y=Yb, Wb, D, C, p)
+  
+  Wnames <- paste(colnames(Wb), collapse="+")
+  fml <- paste("Y ~",Wnames,"+ D + D:C")
+  model <- lm(fml, df, weights = 1/(p*(1-p))) 
+  
+  return(model) 
+}
 
 
 
