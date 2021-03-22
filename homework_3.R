@@ -199,7 +199,7 @@ output <- rerun(10, table_from_blp(blp(df_na_clean$y, df_na_clean %>% select(-w,
 
 output %>% 
   ggplot(aes(x = coefficient,ymin = ci_lower_90, ymax = ci_upper_90, col = coefficient)) +
-  geom_errorbar(size = 1.5) +
+  geom_errorbar(size = 1.5, width = 0.4) +
   labs(col = "") +
   xlab("") +
   ylim(-1,1) +
@@ -207,7 +207,8 @@ output %>%
   theme(legend.position = "bottom",
         legend.text = element_text(size = 16)) +
   theme(axis.text.x = element_blank(),
-        axis.text = element_text(size = 20))
+        axis.text = element_text(size = 20)) +
+  theme(panel.grid.major.x = element_blank())
   
 
 ggsave(paste0(export_path_figures,"blp_coefficients.pdf"))
@@ -321,7 +322,9 @@ output %>%
   theme(legend.position = "bottom",
         legend.text = element_text(size = 16)) +
   theme(axis.text = element_text(size = 20),
-        axis.text.x = element_blank())
+        axis.text.x = element_blank()) +
+  theme(panel.grid.major.x = element_blank())
+
 
 
 ggsave(paste0(export_path_figures,"gates_coefficients.pdf"))
