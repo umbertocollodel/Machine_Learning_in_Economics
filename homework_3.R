@@ -83,8 +83,10 @@ rpart.plot(pruned_tree,
 
 export_path_figures="../Machine_learning_for_economics_material/output/homework_3/figures/"
 
-
 ggsave(paste0(export_path,"causal_tree_pruned.pdf"))
+
+
+
 
 
 
