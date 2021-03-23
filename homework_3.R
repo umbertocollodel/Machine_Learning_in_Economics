@@ -1,7 +1,9 @@
 ############ INSTRUCTIONS TO RUN ###############
 
+# Change raw_path to repository in local machine with survey data in .rds
+# Change export_path_figures to repository for export output figures
 
-#
+
 # Script estimated running time: about 3.5 minutes 
 
 ##################################################
@@ -38,8 +40,16 @@ set.seed(345)
 
 raw_path="../Machine_learning_for_economics_material/raw_data/homework 3/welfare.rds"
 
-df=readRDS(raw_path) %>% 
-  slice(sample(nrow(.),nrow(.)*2/3))
+df=readRDS(raw_path) 
+
+
+# Split into two random samples:
+
+index=sample(1:nrow(df),nrow(df)/2)
+
+
+df1=df[index,]
+df2=df[-index,]
 
 
 # Get formula
