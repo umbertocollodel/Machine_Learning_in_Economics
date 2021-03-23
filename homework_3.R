@@ -30,7 +30,7 @@ install.packages(path_pkg, repos = NULL, type = "source")
 library(causalTree)
 
 
-# Applying Causal Trees ----
+# Applying Honest Tree ----
 
 
 set.seed(345)
@@ -99,9 +99,29 @@ export_path_figures="../Machine_learning_for_economics_material/output/homework_
 ggsave(paste0(export_path_figures,"honest_tree_pruned.pdf"))
 
 
+footnote=c("Estimation and test set are half of the original sample.
+           Honest tree pruned through cross-validation.") %>% 
+  cat(file = paste0(export_path_figures,"honest_tree_pruned_footnote.tex") )
+
+
 
 ### if problem with automatic saving (corrupted file), export manually
 
+
+
+
+# Significance testing:
+
+
+leaf2 <- as.factor(round(predict(pruned_tree,
+                                 newdata = df2,
+                                 type = "vector"), 4))
+
+
+# Run linear regression that estimate the treatment effect magnitudes and standard errors
+honest_ols_2 <- lm(y ~ leaf + w * leaf - w -1, data = data.frame(df2, leaf = leaf2))
+
+summary(honest_ols_2)
 
 # Applying Best Linear Predictor -----
 
