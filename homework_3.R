@@ -96,9 +96,11 @@ rpart.plot(pruned_tree,
 # Export:
 
 export_path_figures="../Machine_learning_for_economics_material/output/homework_3/figures/"
-ggsave(paste0(export_path,"honest_tree_pruned.pdf"))
+ggsave(paste0(export_path_figures,"honest_tree_pruned.pdf"))
 
 
+
+### if problem with automatic saving (corrupted file), export manually
 
 
 # Applying Best Linear Predictor -----
