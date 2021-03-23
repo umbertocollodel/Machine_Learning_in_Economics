@@ -35,11 +35,9 @@ library(causalTree)
 
 set.seed(345)
 
-# Read data: we keep only two-thirds of the original observations to reduce 
-# computational time
+# Read data
 
 raw_path="../Machine_learning_for_economics_material/raw_data/homework 3/welfare.rds"
-
 df=readRDS(raw_path) 
 
 
@@ -108,8 +106,6 @@ footnote=c("Estimation and test set are half of the original sample.
 ### if problem with automatic saving (corrupted file), export manually
 
 
-
-
 # Significance testing:
 
 
@@ -120,8 +116,9 @@ leaf2 <- as.factor(round(predict(pruned_tree,
 
 # Run linear regression that estimate the treatment effect magnitudes and standard errors
 honest_ols_2 <- lm(y ~ leaf + w * leaf - w -1, data = data.frame(df2, leaf = leaf2))
-
 summary(honest_ols_2)
+
+
 
 # Applying Best Linear Predictor -----
 
