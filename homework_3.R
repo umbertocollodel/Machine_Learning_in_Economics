@@ -1,6 +1,7 @@
 ############ INSTRUCTIONS TO RUN ###############
 
 # Change raw_path to repository in local machine with survey data in .rds
+# Change path_pkg to repository in local machine with package causalTree tar file
 # Change export_path_figures to repository for export output figures
 
 
