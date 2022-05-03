@@ -8,6 +8,7 @@ We aim to predict whether or not tweets are made by realDonaldTrump or BernieSan
 Estimated out-of-sample probabilities:
 
 <img src="https://user-images.githubusercontent.com/33840988/166444875-a836228f-10d5-4a2f-93fb-1b95b507b7be.png" width="650" />
+
 ## Homework 2
 
 Part 1: we simulate the treatment coefficient in presence of a large number of controls with different methods using generated data. We calculate the expected value of each estimator and discuss it.
