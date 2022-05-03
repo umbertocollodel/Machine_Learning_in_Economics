@@ -24,3 +24,23 @@ An extract:
 k2ml <- function(X, W, Y, K, SL.library.X,  SL.library.Y, family.X, family.Y)
 
 ```
+
+
+
+## Homework 3 
+
+
+The dataset for this homework comes from a very large survey in the US, where participants were randomly asked one of two questions with similar wording:
+
+"We are faced with many problems in this country, none of which can be solved easily or inexpensively. I’m going to name some of these problems, and for each one I’d like you to tell me whether you think we’re spending too much money on it, too little money, or about the right amount. Are we spending too much, too little, or about the right amount on (welfare/assitance to the poor)?"
+
+The treatment W is the wording of the question (0/1). The outcome Y is that the person surveyed thinks the government spends too much.
+
+Is there treatement effect heterogeneity?
+Where is this heterogeneity?
+
+
+
+
+
+
