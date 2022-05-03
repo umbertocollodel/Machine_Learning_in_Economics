@@ -40,6 +40,7 @@ Is there treatement effect heterogeneity?
 Where is this heterogeneity?
 
 
+<img src="https://user-images.githubusercontent.com/33840988/166445921-4c497aaf-b6f5-4f9f-ad05-1d470fbc2766.png" width="650" />
 
 
 
